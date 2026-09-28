@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pillar Vault</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f6f6f3;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: auto;
+      padding: 40px 24px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 28px;
+    }
+
+    .top-bar {
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 260px;
+      padding: 14px 16px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 15px;
+      background: white;
+    }
+
+    .compare-button {
+      padding: 13px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #222;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .compare-button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .selection-text {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .company-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 18px;
+    }
+
+    .company-card {
+      position: relative;
+      background: white;
+      border: 1px solid #e2e2de;
+      border-radius: 14px;
+      padding: 22px;
+      transition: 0.2s;
+    }
+
+    .company-card:hover {
+      transform: translateY(-3px);
+      border-color: #999;
+    }
+
+    .company-card.selected {
+      border: 2px solid #222;
+    }
+
+    .select-checkbox {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .card-content {
+      cursor: pointer;
+      padding-right: 28px;
+    }
+
+    .company-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .industry {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #efefeb;
+      font-size: 12px;
+    }
+
+    .view-profile {
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .back-button {
+      border: none;
+      background: none;
+      padding: 0;
+      margin-bottom: 24px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .profile-header {
+      background: white;
+      border: 1px solid #e2e2de;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+
+    .profile-header h2 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .detail-card {
+      background: white;
+      border: 1px solid #e2e2de;
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .detail-card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      color: #777;
+    }
+
+    .detail-card p {
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .positive {
+      color: #28743c;
+    }
+
+    .red-flag {
+      color: #a13a3a;
+    }
+
+    .comparison-wrapper {
+      overflow-x: auto;
+      background: white;
+      border: 1px solid #e2e2de;
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      padding: 18px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    th {
+      background: #fafaf8;
+    }
+
+    td:first-child,
+    th:first-child {
+      width: 190px;
+      font-weight: bold;
+      background: #fafaf8;
+    }
+
+    @media (max-width: 700px) {
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full-width {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- DIRECTORY PAGE -->
+
+  <section id="directoryPage" class="page active">
+
+    <h1>Pillar Vault Companies</h1>
+
+    <p class="subtitle">
+      Browse company research or select multiple companies to compare.
+    </p>
+
+    <div class="top-bar">
+
+      <input
+        class="search"
+        type="text"
+        id="searchInput"
+        placeholder="Search companies..."
+        onkeyup="searchCompanies()"
+      />
+
+      <button
+        class="compare-button"
+        id="compareButton"
+        onclick="openComparison()"
+        disabled
+      >
+        Compare Companies
+      </button>
+
+    </div>
+
+    <div class="selection-text">
+      Select 2–4 companies to compare.
+      <strong>
+        <span id="selectedCount">0</span>/4 selected
+      </strong>
+    </div>
+
+    <div id="companyGrid" class="company-grid"></div>
+
+  </section>
+
+
+  <!-- COMPANY PROFILE PAGE -->
+
+  <section id="profilePage" class="page">
+
+    <button class="back-button" onclick="showDirectory()">
+      ← Back to Companies
+    </button>
+
+    <div class="profile-header">
+
+      <h2 id="profileName"></h2>
+
+      <p id="profileIndustry"></p>
+
+      <span class="badge" id="profileRemote"></span>
+
+    </div>
+
+    <div class="details-grid">
+
+      <div class="detail-card">
+        <h3>Typical Roles</h3>
+        <p id="profileRoles"></p>
+      </div>
+
+      <div class="detail-card">
+        <h3>Hiring Regions</h3>
+        <p id="profileRegions"></p>
+      </div>
+
+      <div class="detail-card">
+        <h3>Remote Type</h3>
+        <p id="profileRemoteType"></p>
+      </div>
+
+      <div class="detail-card">
+        <h3>Salary Transparency</h3>
+        <p id="profileSalary"></p>
+      </div>
+
+      <div class="detail-card">
+        <h3>Remote Benefits</h3>
+        <p id="profileBenefits"></p>
+      </div>
+
+      <div class="detail-card">
+        <h3>Job Activity Level</h3>
+        <p id="profileActivity"></p>
+      </div>
+
+      <div class="detail-card full-width">
+        <h3>Application Experience</h3>
+        <p id="profileApplication"></p>
+      </div>
+
+      <div class="detail-card full-width">
+        <h3>Company Positives</h3>
+        <p class="positive" id="profilePositives"></p>
+      </div>
+
+      <div class="detail-card full-width">
+        <h3>Potential Red Flags</h3>
+        <p class="red-flag" id="profileRedFlags"></p>
+      </div>
+
+      <div class="detail-card full-width">
+        <h3>Research Insights</h3>
+        <p id="profileInsights"></p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- COMPARE PAGE -->
+
+  <section id="comparePage" class="page">
+
+    <button class="back-button" onclick="showDirectory()">
+      ← Back to Companies
+    </button>
+
+    <h2>Compare Companies</h2>
+
+    <p class="subtitle">
+      Side-by-side comparison of your selected companies.
+    </p>
+
+    <div
+      id="comparisonTable"
+      class="comparison-wrapper"
+    ></div>
+
+  </section>
+
+</div>
+
+
+<script>
+
+const companies = [
+
+  {
+    id: "midi",
+    name: "Midi Health",
+    industry: "Digital Health / Women's Healthcare",
+    roles: "Clinical Operations, Engineering, Product, Marketing, Customer Experience",
+    regions: "United States",
+    remoteType: "Remote Eligible",
+    salary: "Salary ranges are frequently included in US job listings.",
+    benefits: "Remote opportunities, healthcare benefits and flexible work depending on the position.",
+    activity: "High",
+    application: "Candidates apply through the company careers page. Clinical roles may require professional licenses or state eligibility.",
+    positives: "Growing healthcare company with a strong focus on women's healthcare and an expanding workforce.",
+    redFlags: "Most opportunities are restricted to the United States. Clinical roles may require state licensing.",
+    insights: "A strong option for candidates interested in healthcare, health technology and clinical operations."
+  },
+
+  {
+    id: "xteam",
+    name: "X-Team",
+    industry: "Software Development / Technical Talent",
+    roles: "Software Engineers, Front-End Developers, Back-End Developers, Full-Stack Developers",
+    regions: "Global",
+    remoteType: "Work From Anywhere",
+    salary: "Limited public salary information.",
+    benefits: "Remote-first environment, distributed work and a global developer community.",
+    activity: "Medium",
+    application: "Developer-focused application and screening. Opportunities can depend on available client projects.",
+    positives: "Strong remote culture and broad international hiring access.",
+    redFlags: "Opportunities can depend on client demand and may favor experienced developers.",
+    insights: "Interesting for developers looking for geographically flexible remote work."
+  },
+
+  {
+    id: "pipe",
+    name: "Pipe",
+    industry: "Fintech",
+    roles: "Engineering, Product, Operations, Sales, Finance",
+    regions: "United States and selected international locations",
+    remoteType: "Remote Eligible",
+    salary: "Salary ranges commonly appear on eligible US job listings.",
+    benefits: "Remote opportunities, healthcare coverage and startup-oriented benefits.",
+    activity: "Medium",
+    application: "Standard online application followed by role-specific recruitment stages.",
+    positives: "Remote-friendly fintech company with both technical and business roles.",
+    redFlags: "Remote does not always mean location-independent. Geographic eligibility varies by role.",
+    insights: "Potential fit for candidates with fintech, SaaS, sales, product or startup experience."
+  },
+
+  {
+    id: "revenuecat",
+    name: "RevenueCat",
+    industry: "Developer Tools / SaaS",
+    roles: "Engineering, Product, Developer Relations, Marketing, Customer Support",
+    regions: "Multiple countries",
+    remoteType: "Fully Remote",
+    salary: "Strong salary transparency across many openings.",
+    benefits: "Remote-first environment, distributed team and flexible working arrangements.",
+    activity: "High",
+    application: "Structured hiring process designed for a distributed organization.",
+    positives: "Strong remote-first culture and good compensation transparency.",
+    redFlags: "Technical roles can be highly competitive and eligibility varies by country.",
+    insights: "Strong option for candidates interested in mobile apps, subscriptions and developer tools."
+  },
+
+  {
+    id: "degreed",
+    name: "Degreed",
+    industry: "EdTech / Learning Technology",
+    roles: "Engineering, Customer Success, Sales, Product, Marketing",
+    regions: "United States and international markets",
+    remoteType: "Remote Eligible",
+    salary: "Salary information is available for some positions.",
+    benefits: "Remote opportunities and employee learning or development benefits.",
+    activity: "Medium",
+    application: "Traditional company careers portal and corporate recruitment process.",
+    positives: "Wide range of business and technical roles in the corporate learning space.",
+    redFlags: "Some remote positions still have geographic or market restrictions.",
+    insights: "Relevant for candidates interested in HR technology, learning, SaaS or customer success."
+  }
+
+];
+
+
+let selectedCompanies = [];
+
+
+/* -------------------------
+   RENDER COMPANY CARDS
+-------------------------- */
+
+function renderCompanies(list = companies) {
+
+  const grid =
+    document.getElementById("companyGrid");
+
+  grid.innerHTML = "";
+
+  list.forEach(company => {
+
+    const selected =
+      selectedCompanies.includes(company.id);
+
+    const card =
+      document.createElement("div");
+
+    card.className =
+      "company-card" +
+      (selected ? " selected" : "");
+
+    card.innerHTML = `
+
+      <input
+        type="checkbox"
+        class="select-checkbox"
+        ${selected ? "checked" : ""}
+        onclick="toggleCompany(event, '${company.id}')"
+      >
+
+      <div
+        class="card-content"
+        onclick="openProfile('${company.id}')"
+      >
+
+        <div class="company-name">
+          ${company.name}
+        </div>
+
+        <div class="industry">
+          ${company.industry}
+        </div>
+
+        <span class="badge">
+          ${company.remoteType}
+        </span>
+
+        <div class="view-profile">
+          View Company Details →
+        </div>
+
+      </div>
+
+    `;
+
+    grid.appendChild(card);
+
+  });
+
+}
+
+
+/* -------------------------
+   SELECT FOR COMPARISON
+-------------------------- */
+
+function toggleCompany(event, id) {
+
+  event.stopPropagation();
+
+  const exists =
+    selectedCompanies.includes(id);
+
+  if (exists) {
+
+    selectedCompanies =
+      selectedCompanies.filter(
+        companyId => companyId !== id
+      );
+
+  } else {
+
+    if (selectedCompanies.length >= 4) {
+
+      alert(
+        "You can compare a maximum of four companies."
+      );
+
+      event.target.checked = false;
+
+      return;
+    }
+
+    selectedCompanies.push(id);
+
+  }
+
+  updateSelection();
+  searchCompanies();
+
+}
+
+
+function updateSelection() {
+
+  document.getElementById(
+    "selectedCount"
+  ).innerText =
+    selectedCompanies.length;
+
+  document.getElementById(
+    "compareButton"
+  ).disabled =
+    selectedCompanies.length < 2;
+
+}
+
+
+/* -------------------------
+   COMPANY PROFILE
+-------------------------- */
+
+function openProfile(id) {
+
+  const company =
+    companies.find(
+      company => company.id === id
+    );
+
+  document.getElementById("profileName")
+    .innerText = company.name;
+
+  document.getElementById("profileIndustry")
+    .innerText = company.industry;
+
+  document.getElementById("profileRemote")
+    .innerText = company.remoteType;
+
+  document.getElementById("profileRoles")
+    .innerText = company.roles;
+
+  document.getElementById("profileRegions")
+    .innerText = company.regions;
+
+  document.getElementById("profileRemoteType")
+    .innerText = company.remoteType;
+
+  document.getElementById("profileSalary")
+    .innerText = company.salary;
+
+  document.getElementById("profileBenefits")
+    .innerText = company.benefits;
+
+  document.getElementById("profileActivity")
+    .innerText = company.activity;
+
+  document.getElementById("profileApplication")
+    .innerText = company.application;
+
+  document.getElementById("profilePositives")
+    .innerText = company.positives;
+
+  document.getElementById("profileRedFlags")
+    .innerText = company.redFlags;
+
+  document.getElementById("profileInsights")
+    .innerText = company.insights;
+
+  showPage("profilePage");
+
+}
+
+
+/* -------------------------
+   COMPARE COMPANIES
+-------------------------- */
+
+function openComparison() {
+
+  const selected =
+    companies.filter(company =>
+      selectedCompanies.includes(company.id)
+    );
+
+  const fields = [
+
+    ["Industry", "industry"],
+
+    ["Typical Roles", "roles"],
+
+    ["Hiring Regions", "regions"],
+
+    ["Remote Type", "remoteType"],
+
+    ["Salary Transparency", "salary"],
+
+    ["Remote Benefits", "benefits"],
+
+    ["Job Activity Level", "activity"],
+
+    ["Application Experience", "application"],
+
+    ["Company Positives", "positives"],
+
+    ["Potential Red Flags", "redFlags"],
+
+    ["Research Insights", "insights"]
+
+  ];
+
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+  `;
+
+
+  selected.forEach(company => {
+
+    html += `
+      <th>
+        <div class="company-name">
+          ${company.name}
+        </div>
+
+        <span class="badge">
+          ${company.remoteType}
+        </span>
+      </th>
+    `;
+
+  });
+
+
+  html += `
+        </tr>
+      </thead>
+
+      <tbody>
+  `;
+
+
+  fields.forEach(([label, key]) => {
+
+    html += `
+      <tr>
+
+        <td>
+          ${label}
+        </td>
+    `;
+
+    selected.forEach(company => {
+
+      let className = "";
+
+      if (key === "positives") {
+        className = "positive";
+      }
+
+      if (key === "redFlags") {
+        className = "red-flag";
+      }
+
+      html += `
+        <td class="${className}">
+          ${company[key]}
+        </td>
+      `;
+
+    });
+
+    html += `
+      </tr>
+    `;
+
+  });
+
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+
+  document.getElementById(
+    "comparisonTable"
+  ).innerHTML = html;
+
+
+  showPage("comparePage");
+
+}
+
+
+/* -------------------------
+   SEARCH
+-------------------------- */
+
+function searchCompanies() {
+
+  const query =
+    document
+      .getElementById("searchInput")
+      .value
+      .toLowerCase();
+
+  const filtered =
+    companies.filter(company =>
+
+      company.name
+        .toLowerCase()
+        .includes(query)
+
+      ||
+
+      company.industry
+        .toLowerCase()
+        .includes(query)
+
+      ||
+
+      company.remoteType
+        .toLowerCase()
+        .includes(query)
+
+    );
+
+  renderCompanies(filtered);
+
+}
+
+
+/* -------------------------
+   PAGE NAVIGATION
+-------------------------- */
+
+function showPage(pageId) {
+
+  document
+    .querySelectorAll(".page")
+    .forEach(page => {
+
+      page.classList.remove("active");
+
+    });
+
+  document
+    .getElementById(pageId)
+    .classList.add("active");
+
+  window.scrollTo(0, 0);
+
+}
+
+
+function showDirectory() {
+
+  showPage("directoryPage");
+
+}
+
+
+/* INITIAL LOAD */
+
+renderCompanies();
+updateSelection();
+
+</script>
+
+</body>
+</html>
